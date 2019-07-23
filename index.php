@@ -1,12 +1,13 @@
 <?php
 $targetday = "Christmas";
+$christmas = new DateTime(date('Y-12-25'));
 $error = "0";
 
 foreach($_GET as $key => $value)
 {
-   if ($key == "tz") { $tz = $value; continue; }
-   if ($key == "td") { $td = $value; continue; }
-   if ($key == "tdn") { $tdn = $value; continue; }
+   if ($key == "tz" && !isset($tz)) { $tz = $value; continue; }
+   if ($key == "td" && !isset($td)) { $td = $value; continue; }
+   if ($key == "tdn" && !isset($tdn)) { $tdn = $value; continue; }
    $error = "4";
    break;
 }
@@ -32,22 +33,20 @@ else {
     $tzone = "Europe/London";
 }
 
-$christmas = new DateTime(date('Y-12-25'), new DateTimeZone($tzone) );
 
 if (isset($td)) {
-  $date = date_parse($td);
-  if ($date["error_count"] == 0 && checkdate($date["month"], $date["day"], $date["year"])) {
-      $targdate = $td;
-} else {
-      // invalid date, using christmas.
-      $targdate = $christmas;
-      $error += 2;
+  try {
+    $targetdate = new DateTime('@' . strtotime($td), new DateTimeZone($tzone));
+  } catch ( Exception $e ){
+    // invalid date, using christmas.
+    $targetdate = $christmas;
+    $error += 2;
   }
 } else {
-  $targdate = $christmas;
+  $targetdate = $christmas;
 }
 
-$targetdate = $targdate->format('Y-m-d');
+$targetdate = date_format($targetdate, 'Y-m-d');
 
 $tdate = new DateTime("today", new DateTimeZone($tzone) );
 $today = $tdate->format('Y-m-d');
@@ -59,14 +58,14 @@ if ($today > $targetdate) {
 
 if (isset($tdn)) {
   $tdn = stripQuotes($tdn);
-  $targetday = strip_tags( trim($tdn));
-}
-if (isset($td)) {
-  if (!isset($tdn)) {
-    $tdn = "your date";
-  }
+  $targetday = strip_tags( trim($tdn)) . " ( " . $targetdate . " )";
 }
 
+if (isset($td)) {
+  if (!isset($tdn)) {
+    $targetday = "your date ( " . $targetdate . " )";
+  }
+}
 $sleeps = floor((strtotime($targetdate) - strtotime($today))/60/60/24);
 if ($error == "0") {
   if ($sleeps == "1") {

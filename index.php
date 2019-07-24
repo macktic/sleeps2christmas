@@ -2,7 +2,8 @@
 $targetday = "Christmas";
 $christmas = new DateTime(date('Y-12-25'));
 $error = "0";
-
+// needed to make the sums work.
+date_default_timezone_set( "UTC" );
 
 foreach($_GET as $key => $value)
 {

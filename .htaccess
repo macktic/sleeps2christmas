@@ -3,4 +3,17 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^(.*)$ error.php?error=8 [QSA,L]
+
+    RewriteRule ^.git/(.*)$ error.php?error=8 [QSA,L]
+    RewriteRule ^vendor/(.*)$ error.php?error=8 [QSA,L]
 </IfModule>
+
+<FilesMatch "^\.">
+Order allow,deny
+Deny from all
+</FilesMatch>
+
+<FilesMatch "\.(json|lock)$">
+Order allow,deny
+Deny from all
+</FilesMatch>

@@ -3,6 +3,7 @@ $targetday = "Christmas";
 $christmas = new DateTime(date('Y-12-25'));
 $error = "0";
 
+
 foreach($_GET as $key => $value)
 {
    if ($key == "tz" && !isset($tz)) { $tz = $value; continue; }
@@ -35,6 +36,7 @@ else {
 
 
 if (isset($td)) {
+  $td = stripQuotes($td);
   try {
     $targetdate = new DateTime('@' . strtotime($td), new DateTimeZone($tzone));
   } catch ( Exception $e ){
@@ -46,7 +48,7 @@ if (isset($td)) {
   $targetdate = $christmas;
 }
 
-$targetdate = date_format($targetdate, 'Y-m-d');
+$targetdate = $targetdate->format('Y-m-d');
 
 $tdate = new DateTime("today", new DateTimeZone($tzone) );
 $today = $tdate->format('Y-m-d');

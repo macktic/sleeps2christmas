@@ -61,7 +61,7 @@ if ($today > $targetdate) {
 
 if (isset($tdn)) {
   $tdn = stripQuotes($tdn);
-  $targetday = strip_tags( trim($tdn)) . " ( " . $targetdate . " )";
+  $targetday = strip_tags( trim($tdn));
 }
 
 if (isset($td)) {

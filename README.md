@@ -42,7 +42,7 @@ You can call any number of options or none
 
 ## License
 
-This project is licensed under [GNU GPL v3](/LICENSE.txt)
+This project is licensed under the [MIT License](/LICENSE.txt).
 
 ## Acknowledgments
 

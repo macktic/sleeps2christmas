@@ -18,6 +18,9 @@ $ALLOWED = [
   'nivuk' => 'youversion.php',
   'tpt'   => 'youversion.php',
   'htb'   => 'youversion.php',
+  'lxx'   => 'greek.php',
+  'sblgnt' => 'greek.php',
+  'lxxsbl' => 'greek.php',
   // add more later, e.g. 'web' => 'web.php'
 ];
 

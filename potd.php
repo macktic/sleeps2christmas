@@ -5,6 +5,7 @@
  * - key=esv  : includes ./esv.php (with $ref set) to print the full chapter or mp3
  * - key=svv  : includes ./svv.php (with $ref set) for Dutch (no mp3)
  * - YouVersion keys: nasb1995, niv, nivuk, tpt, htb (text only)
+ * - Local Greek keys: lxx, lxxsbl (text only)
  */
 
 header('Content-Type: text/plain; charset=UTF-8');
@@ -18,6 +19,8 @@ $ALLOWED = [
   'nivuk'    => 'youversion.php',
   'tpt'      => 'youversion.php',
   'htb'      => 'youversion.php',
+  'lxx'      => 'greek.php',
+  'lxxsbl'   => 'greek.php',
   // add more later
 ];
 

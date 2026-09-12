@@ -13,7 +13,20 @@ if ($appKey === '') {
     exit(1);
 }
 
-$url = 'https://api.youversion.com/v1/bibles/1531/passages/JHN.3.16';
+$versionId = $argv[1] ?? '';
+$passageId = strtoupper($argv[2] ?? '');
+$label = $argv[3] ?? $versionId;
+
+if (!ctype_digit($versionId) || $passageId === '') {
+    fwrite(STDERR, "Usage: php test_youversion_version.php VERSION_ID PASSAGE_ID [LABEL]\n");
+    exit(1);
+}
+
+$url = 'https://api.youversion.com/v1/bibles/'
+    . $versionId
+    . '/passages/'
+    . rawurlencode($passageId)
+    . '?format=text';
 
 $ch = curl_init($url);
 curl_setopt_array($ch, [
@@ -47,7 +60,7 @@ if (!is_array($payload) || empty($payload['content'])) {
     exit(1);
 }
 
-echo ($payload['reference'] ?? 'John 3:16')
-    . " (NIVUK)\n"
+echo ($payload['reference'] ?? $passageId)
+    . " ($label)\n"
     . trim($payload['content'])
     . "\n";

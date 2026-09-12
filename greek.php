@@ -13,6 +13,27 @@ if (!in_array($key, ['lxx', 'sblgnt', 'lxxsbl'], true)) {
 if (!isset($passageId) || trim((string)$passageId) === '') {
     $passageId = trim($_GET['passage'] ?? '');
 }
+
+require_once __DIR__ . '/bible_reference.php';
+
+$greekVersions = [
+    'lxx'    => ['coverage'=>['ot'=>true,'nt'=>false,'apocrypha'=>true],  'incomplete'=>true],
+    'sblgnt' => ['coverage'=>['ot'=>false,'nt'=>true,'apocrypha'=>false], 'incomplete'=>false],
+    'lxxsbl' => ['coverage'=>['ot'=>true,'nt'=>true,'apocrypha'=>false],  'incomplete'=>true],
+];
+$language = $key === 'lxxsbl' ? 'en' : 'el';
+$category = bible_reference_category($passageId);
+
+if (!is_valid_bible_reference($passageId) || $category === null) {
+    http_response_code(400);
+    exit(invalid_reference_message($language));
+}
+
+if (empty($greekVersions[$key]['coverage'][$category])) {
+    http_response_code(404);
+    exit(category_unavailable_message($category, $language));
+}
+
 if (!preg_match('/^([1-4]?[A-Z]{2,3})\.(\d+)(?:\.(\d+)(?:-(\d+))?)?$/', $passageId, $parts)) {
     http_response_code(400);
     exit('Invalid passage');
@@ -113,11 +134,6 @@ if ($key === 'lxxsbl') {
         $book = $lxxCodeAliases[$inputBook] ?? $inputBook;
         $label = 'LXX';
 
-        // Ezra is not present as canonical Ezra in this particular LXX corpus.
-        if ($inputBook === 'EZR') {
-            http_response_code(404);
-            exit('Ezra unavailable in this LXX corpus');
-        }
     }
 } elseif ($key === 'sblgnt' && !isset($newTestament[$inputBook])) {
     http_response_code(404);
@@ -169,8 +185,12 @@ if ($key === 'lxxsbl' && $corpus === 'lxx') {
 }
 
 if (empty($texts)) {
-    http_response_code(404);
-    exit('Passage not found');
+    if (!empty($greekVersions[$key]['incomplete'])) {
+        http_response_code(404);
+        exit(reference_pending_message($language));
+    }
+    http_response_code(502);
+    exit(reference_retrieval_message($language));
 }
 
 if (isset($ref) && trim((string)$ref) !== '') {

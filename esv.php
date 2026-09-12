@@ -10,6 +10,18 @@ if ($ref === '') {
     exit("Missing ref");
 }
 
+require_once __DIR__ . '/bible_reference.php';
+
+if (!is_valid_bible_reference($ref)) {
+    http_response_code(400);
+    exit(invalid_reference_message('en'));
+}
+
+if (bible_reference_category($ref) === 'apocrypha') {
+    http_response_code(404);
+    exit(category_unavailable_message('apocrypha', 'en'));
+}
+
 $env = @parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
 $apiKey = is_array($env) ? trim($env['ESV_API_KEY'] ?? '') : '';
 $apiKey = preg_replace('/^Token\s+/i', '', $apiKey);
@@ -33,6 +45,10 @@ switch ($format) {
         $ctx  = stream_context_create($opts);
         $mp3data = @file_get_contents($url, false, $ctx);
         if ($mp3data === false) {
+            if (response_http_status($http_response_header ?? []) === 404) {
+                http_response_code(502);
+                exit(reference_retrieval_message('en'));
+            }
             http_response_code(502);
             exit("ESV audio fetch failed");
         }
@@ -65,6 +81,10 @@ $opts = [
 $ctx  = stream_context_create($opts);
 $json = @file_get_contents($url, false, $ctx);
 if ($json === false) {
+    if (response_http_status($http_response_header ?? []) === 404) {
+        http_response_code(502);
+        exit(reference_retrieval_message('en'));
+    }
     http_response_code(502);
     exit("ESV fetch failed");
 }
@@ -76,7 +96,7 @@ if ($format === 'html') {
     $html = trim($data['passages'][0] ?? '');
     if ($html === '') {
         http_response_code(502);
-        exit("ESV HTML response empty");
+        exit(reference_retrieval_message('en'));
     }
     echo $html;
     exit;
@@ -85,7 +105,7 @@ if ($format === 'html') {
     $text = trim($data['passages'][0] ?? '');
     if ($text === '') {
         http_response_code(502);
-        exit("ESV response empty");
+        exit(reference_retrieval_message('en'));
     }
     // Final format: Reference — Verse text, (ESV) — Reference
     echo $ref . " — " . $text . " — " . $ref;

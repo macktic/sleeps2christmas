@@ -13,7 +13,7 @@ Order allow,deny
 Deny from all
 </FilesMatch>
 
-<FilesMatch "\.(json|lock)$">
+<FilesMatch "\.(json|lock|sqlite)$">
 Order allow,deny
 Deny from all
 </FilesMatch>

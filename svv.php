@@ -15,6 +15,18 @@ if ($ref === '') {
     exit('Missing ref');
 }
 
+require_once __DIR__ . '/bible_reference.php';
+
+if (!is_valid_bible_reference($ref)) {
+    http_response_code(400);
+    exit(invalid_reference_message('nl'));
+}
+
+if (bible_reference_category($ref) === 'apocrypha') {
+    http_response_code(404);
+    exit(category_unavailable_message('apocrypha', 'nl'));
+}
+
 function fetch_json(string $ref): ?array {
     $api = 'https://api.biblesupersearch.com/api';
     $qs  = http_build_query([
@@ -120,7 +132,7 @@ if ($debug) {
 
 if ($text === '') {
     http_response_code(502);
-    exit('SVV response empty');
+    exit(reference_retrieval_message('nl'));
 }
 
 // Build a localized reference (prefer Dutch book name from payload)

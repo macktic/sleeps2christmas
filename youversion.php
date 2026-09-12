@@ -5,11 +5,11 @@
 header('Content-Type: text/plain; charset=UTF-8');
 
 $versions = [
-    'nasb1995' => ['id' => 100,  'label' => 'NASB1995'],
-    'niv'   => ['id' => 111,  'label' => 'NIV'],
-    'nivuk' => ['id' => 113,  'label' => 'NIVUK'],
-    'tpt'   => ['id' => 1849, 'label' => 'TPT'],
-    'htb'   => ['id' => 75,   'label' => 'HTB'],
+    'nasb1995' => ['id'=>100,  'label'=>'NASB1995', 'coverage'=>['ot'=>true,'nt'=>true,'apocrypha'=>false], 'incomplete'=>false],
+    'niv'       => ['id'=>111,  'label'=>'NIV',      'coverage'=>['ot'=>true,'nt'=>true,'apocrypha'=>false], 'incomplete'=>false],
+    'nivuk'     => ['id'=>113,  'label'=>'NIVUK',    'coverage'=>['ot'=>true,'nt'=>true,'apocrypha'=>false], 'incomplete'=>false],
+    'tpt'       => ['id'=>1849, 'label'=>'TPT',      'coverage'=>['ot'=>true,'nt'=>true,'apocrypha'=>false], 'incomplete'=>true],
+    'htb'       => ['id'=>75,   'label'=>'HTB',      'coverage'=>['ot'=>true,'nt'=>true,'apocrypha'=>false], 'incomplete'=>false],
 ];
 
 $key = strtolower($_GET['key'] ?? 'nasb1995');
@@ -28,6 +28,22 @@ if ($passageId === '') {
     exit('Missing passage');
 }
 
+require_once __DIR__ . '/bible_reference.php';
+
+$language = $key === 'htb' ? 'nl' : 'en';
+$category = bible_reference_category($passageId);
+
+if (!is_valid_bible_reference($passageId) || $category === null) {
+    http_response_code(400);
+    exit(invalid_reference_message($language));
+}
+
+$version = $versions[$key];
+if (empty($version['coverage'][$category])) {
+    http_response_code(404);
+    exit(category_unavailable_message($category, $language));
+}
+
 $env = @parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
 $appKey = is_array($env) ? trim($env['YVP_APP_KEY'] ?? '') : '';
 
@@ -36,7 +52,6 @@ if ($appKey === '') {
     exit('YouVersion API key missing');
 }
 
-$version = $versions[$key];
 $url = 'https://api.youversion.com/v1/bibles/'
      . $version['id']
      . '/passages/'
@@ -58,7 +73,21 @@ curl_setopt_array($ch, [
 $body = curl_exec($ch);
 $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-if ($body === false || $status < 200 || $status >= 300) {
+if ($body === false) {
+    http_response_code(502);
+    exit('YouVersion passage fetch failed');
+}
+
+if ($status === 404) {
+    if (!empty($version['incomplete'])) {
+        http_response_code(404);
+        exit(reference_pending_message($language));
+    }
+    http_response_code(502);
+    exit(reference_retrieval_message($language));
+}
+
+if ($status < 200 || $status >= 300) {
     http_response_code(502);
     exit('YouVersion passage fetch failed');
 }

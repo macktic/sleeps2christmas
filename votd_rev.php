@@ -13,6 +13,11 @@ $ALLOWED = [
   'esv'   => 'esv.php',
 //  'esvuk' => 'esvuk.php',
   'svv'   => 'svv.php',     // Dutch (Statenvertaling)
+  'nasb1995' => 'youversion.php',
+  'niv'   => 'youversion.php',
+  'nivuk' => 'youversion.php',
+  'tpt'   => 'youversion.php',
+  'htb'   => 'youversion.php',
   // add more later, e.g. 'web' => 'web.php'
 ];
 

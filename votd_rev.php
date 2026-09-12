@@ -19,69 +19,85 @@ $ALLOWED = [
 // Which keys support audio?
 $AUDIO_COMPATIBLE = ['esv'];
 
-// --- tiny fetch helper
-function fetch_html(string $url): ?string {
+// --- Load the YouVersion App Key
+$env = @parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
+$youVersionKey = is_array($env) ? trim($env['YVP_APP_KEY'] ?? '') : '';
+
+if ($youVersionKey === '') {
+  http_response_code(500);
+  exit('YouVersion API key missing');
+}
+
+// --- Fetch today's passage ID from the official YouVersion API
+function fetch_youversion_votd(int $day, string $appKey): ?array {
+  $url = 'https://api.youversion.com/v1/verse_of_the_days/' . $day;
   $ch = curl_init($url);
+
   curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_FOLLOWLOCATION => true,
     CURLOPT_CONNECTTIMEOUT => 5,
     CURLOPT_TIMEOUT => 10,
-    CURLOPT_USERAGENT => 'Mozilla/5.0',
     CURLOPT_HTTPHEADER => [
-      'Accept: text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-      'Accept-Language: en-GB,en;q=0.8',
-      'Accept-Encoding: identity',
+      'Accept: application/json',
+      'X-YVP-App-Key: ' . $appKey,
     ],
   ]);
+
   $body = curl_exec($ch);
   $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-  return ($code >= 200 && $code < 400 && $body) ? $body : null;
-}
+  curl_close($ch);
 
-// --- 1) Get YouVersion page
-$html = fetch_html('https://www.bible.com/verse-of-the-day');
-if (!$html) { http_response_code(502); exit("VOTD fetch failed"); }
-
-// --- 2) Extract reference (robust: use meta first, then body fallback)
-$reference = '';
-
-// Current YouVersion title:
-// "Verse of the Day - Revelation 4:11 - Bible App"
-if (preg_match(
-  '/<title>\s*Verse of the Day\s*-\s*([1-3]?\s?[A-Za-z][A-Za-z ]+\s+\d+:\d+(?:[-–]\d+)?)\s*-\s*Bible App\s*<\/title>/i',
-  $html,
-  $m
-)) {
-  $reference = trim($m[1]);
-}
-
-// Try og/twitter description meta
-if ($reference === '' && preg_match('/<meta\s+(?:property|name)=["\'](?:og|twitter):description["\']\s+content=["\']([^"\']+)["\']/i', $html, $m)) {
-  $line = html_entity_decode($m[1], ENT_QUOTES|ENT_HTML5, 'UTF-8');
-  if (preg_match('/^([1-3]?\s?[A-Za-z][A-Za-z ]+\s+\d+:\d+(?:[-–]\d+)?)/u', $line, $r)) {
-    $reference = trim($r[1]);
+  if ($code < 200 || $code >= 300 || !is_string($body) || $body === '') {
+    return null;
   }
+
+  $payload = json_decode($body, true);
+  return is_array($payload) ? $payload : null;
 }
 
-if ($reference === '') {
-  // Fallback: slice body text between "Verse of the Day" and the next section
-  $body = preg_replace("/\r\n?/", "\n", strip_tags($html));
-  if (preg_match('/Verse of the Day(.*?)(?:This Weeks Bible Verses|Download The Bible App)/is', $body, $b)) {
-    $blk = trim($b[1]);
-    // Drop date line if present
-    $blk = preg_replace('/^[A-Z][a-z]+ \d{1,2}, \d{4}\s*\n/u', '', $blk);
-    $lines = array_values(array_filter(array_map('trim', explode("\n", $blk))));
-    foreach ($lines as $L) {
-      if (preg_match('/^[1-3]?\s?[A-Za-z][A-Za-z ]+\s+\d+:\d+(?:[-–]\d+)?(?:\s*\([A-Z]{2,}\))?$/u', $L)) {
-        $reference = trim(preg_replace('/\s*\([A-Z]{2,}\)\s*$/', '', $L)); // strip "(ESV)"
-        break;
-      }
-    }
+// Convert a YouVersion USFM passage ID such as MAT.11.28
+// into the existing human-readable format: Matthew 11:28
+function passage_id_to_reference(string $passageId): ?string {
+  $bookCodes = explode(
+    ' ',
+    'GEN EXO LEV NUM DEU JOS JDG RUT 1SA 2SA 1KI 2KI 1CH 2CH EZR NEH EST JOB PSA PRO ECC SNG ISA JER LAM EZK DAN HOS JOL AMO OBA JON MIC NAM HAB ZEP HAG ZEC MAL MAT MRK LUK JHN ACT ROM 1CO 2CO GAL EPH PHP COL 1TH 2TH 1TI 2TI TIT PHM HEB JAS 1PE 2PE 1JN 2JN 3JN JUD REV'
+  );
+
+  $bookNames = explode(
+    '|',
+    'Genesis|Exodus|Leviticus|Numbers|Deuteronomy|Joshua|Judges|Ruth|1 Samuel|2 Samuel|1 Kings|2 Kings|1 Chronicles|2 Chronicles|Ezra|Nehemiah|Esther|Job|Psalms|Proverbs|Ecclesiastes|Song of Solomon|Isaiah|Jeremiah|Lamentations|Ezekiel|Daniel|Hosea|Joel|Amos|Obadiah|Jonah|Micah|Nahum|Habakkuk|Zephaniah|Haggai|Zechariah|Malachi|Matthew|Mark|Luke|John|Acts|Romans|1 Corinthians|2 Corinthians|Galatians|Ephesians|Philippians|Colossians|1 Thessalonians|2 Thessalonians|1 Timothy|2 Timothy|Titus|Philemon|Hebrews|James|1 Peter|2 Peter|1 John|2 John|3 John|Jude|Revelation'
+  );
+
+  $books = array_combine($bookCodes, $bookNames);
+
+  if (
+    !is_array($books) ||
+    !preg_match('/^([1-3]?[A-Z]{2,3})\.(\d+)\.(\d+(?:-\d+)?)$/', $passageId, $parts) ||
+    !isset($books[$parts[1]])
+  ) {
+    return null;
   }
+
+  return $books[$parts[1]] . ' ' . $parts[2] . ':' . $parts[3];
 }
 
-if ($reference === '') { http_response_code(500); exit("Could not parse VOTD reference"); }
+$today = new DateTimeImmutable('now', new DateTimeZone('Europe/London'));
+$dayOfYear = ((int) $today->format('z')) + 1;
+
+$payload = fetch_youversion_votd($dayOfYear, $youVersionKey);
+
+if ($payload === null) {
+  http_response_code(502);
+  exit('VOTD fetch failed');
+}
+
+$passageId = trim($payload['passage_id'] ?? '');
+$reference = passage_id_to_reference($passageId);
+
+if ($reference === null) {
+  http_response_code(500);
+  exit('Could not parse VOTD reference');
+}
 
 // --- 3) If no/unknown key: just output the reference
 $key = isset($_GET['key']) ? strtolower($_GET['key']) : '';

@@ -10,7 +10,14 @@ if ($ref === '') {
     exit("Missing ref");
 }
 
-$apiKey = 'Token 96b063e1cba6a76ab050b4f578760f30c89bd052'; // from https://api.esv.org
+$env = @parse_ini_file(__DIR__ . '/.env', false, INI_SCANNER_RAW);
+$apiKey = is_array($env) ? trim($env['ESV_API_KEY'] ?? '') : '';
+$apiKey = preg_replace('/^Token\s+/i', '', $apiKey);
+
+if ($apiKey === '') {
+    http_response_code(500);
+    exit('ESV API key missing');
+}
 
 switch ($format) {
     case 'audio':

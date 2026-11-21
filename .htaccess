@@ -4,7 +4,7 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^(.*)$ error.php?error=8 [QSA,L]
 
-    RewriteRule ^.git/(.*)$ error.php?error=8 [QSA,L]
+    RewriteRule ^\.git/(.*)$ error.php?error=8 [QSA,L]
     RewriteRule ^vendor/(.*)$ error.php?error=8 [QSA,L]
 </IfModule>
 
@@ -13,7 +13,7 @@ Order allow,deny
 Deny from all
 </FilesMatch>
 
-<FilesMatch "\.(json|lock|sqlite)$">
+<FilesMatch "\.(json|lock|sqlite|env)$">
 Order allow,deny
 Deny from all
 </FilesMatch>

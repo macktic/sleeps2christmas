@@ -10,5 +10,5 @@ $data = array('updateDate' => date('c'),
     'redirectinUrl' => 'https://sleeps2christmas.sebs.space/',
     'mainText' => $sleeps );
 
-echo json_encode( $data );
+echo json_encode([$data]);
 ?>
